@@ -1,0 +1,45 @@
+#import cookielib
+from urllib2 import Request, build_opener, HTTPCookieProcessor, HTTPHandler
+import time ,urllib
+#cj用来保存访问过程中的cookie，用它来初始化opener，以后每次用
+#opener来访问url时，都会使用该cookie。这样每次请求的一些变量都
+#会相同，如：sessionid
+ 
+cj =  cookielib.CookieJar()
+opener = build_opener(HTTPCookieProcessor(cj),HTTPHandler)
+f = opener.open("<a href="http://10.23.51.20:8001/ok.html"" target="_blank">http://10.23.51.20:8001/ok.html"</a>)
+html = f.read()
+     
+print "The cookies are:"
+for cookie in cj:
+    print cookie
+ 
+time.sleep(1)
+for i in range(10):
+    f = opener.open("<a href="http://10.23.51.20:8001/ok.html"" target="_blank">http://10.23.51.20:8001/ok.html"</a>)
+    html = f.read()
+     
+print "The cookies are:"
+for cookie in cj:
+    print cookie
+    time.sleep(10)
+追问：
+我也试了，可是输出的还是页面架构
+追答：
+我试了一下，可以输出cookies。
+1
+2
+3
+4
+5
+6
+7
+8
+Python 2.7.8 (default, Jun 30 2014, 16:03:49) [MSC v.1500 32 bit (Intel)] on win32
+Type "copyright", "credits" or "license()" for more information.
+>>> ================================ RESTART ================================
+>>> 
+The cookies are:
+<Cookie BAIDUID=3C909C42F719B5CA0D98F29CA84DE943:FG=1 for .baidu.com/>
+<Cookie BDSVRTM=0 for <a href="http://www.baidu.com/>" target="_blank">www.baidu.com/></a>
+<Cookie BD_HOME=0 for <a href="http://www.baidu.com/>" target="_blank">www.baidu.com/></a>
