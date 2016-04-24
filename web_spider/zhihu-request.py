@@ -86,6 +86,7 @@ def get_next_users(hash_id="",offset=0,cookies=None,next_url="",num=0):
     try:
         res = requests.get(next_url, headers=HEADERS_BASE, cookies=cookies, data=next_data, timeout=1)
         print "status_code:",res.status_code,"offset:",offset,"hash_id:",hash_id
+        print res.content
         return res.content
     except Exception, e:
         #raise e
@@ -433,10 +434,25 @@ def main():
 
 
 
+def test():
+    print "test"
+    m_cookies = get_login_cookie()
+    #next_followers_url = "https://www.zhihu.com/node/ProfileFollowersListV2"
+    #get_next_users("091e189523a635219d05a4c3cfae70aa",0,m_cookies,next_followers_url)
+    try:
+        res = requests.get("https://www.zhihu.com/", headers=HEADERS_BASE, cookies=m_cookies, timeout=1)
+        print "status_code:",res.status_code
+        print res.content
+        return res.content
+    except Exception, e:
+        #raise e
+        print "ERROR"
+    return ""
+
  
 if __name__ == '__main__':
     #work()
-    main()
+    test()
     #print hash_id_to_num("69865e1245455c3bd3f0eeacdad64c5b")
     #create_tables()
     #conn=MySQLdb.connect(host="127.0.0.1",user="spider",passwd="spider123",db="zhihu_spider",charset="utf8")
