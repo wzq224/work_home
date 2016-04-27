@@ -30,7 +30,7 @@ def get_xsrf(url=None):
 
 
 # 模拟登录 返回cookie
-def get_login_cookie():
+def get_login_cookie(xsrf):
     url = 'http://www.zhihu.com'
     login_url = url+'/login/email'
     login_data = {
@@ -39,8 +39,9 @@ def get_login_cookie():
         'rememberme': 'true',
     }
     
-    XSRF = get_xsrf(url)
-    print "xsrf:",XSRF
+    #XSRF = get_xsrf(url)
+    XSRF = xsrf
+    print "xsrf XSRF:",XSRF
     login_data['_xsrf'] = XSRF.encode('utf-8')
     
     # captcha_url = 'http://www.zhihu.com/captcha.gif'
@@ -65,8 +66,9 @@ def get_login_cookie():
 
 
 # 获取粉丝
-def get_next_followers(hash_id="",offset=0,cookies=None,num=0):
-    next_followers_url = "https://www.zhihu.com/node/ProfileFollowersListV2"
+def get_next_followers(hash_id="",offset=0,cookies=None,num=0,proflie_url=""):
+    next_followers_url = "https://www.zhihu.com%s/followers" % proflie_url
+    print "next_followers_url:",next_followers_url
     return get_next_users(hash_id,offset,cookies,next_followers_url,num)
 
 # 获取关注的人
@@ -74,17 +76,20 @@ def get_next_followees(hash_id="",offset=0,cookies=None):
     next_followees_url = "https://www.zhihu.com/node/ProfileFolloweesListV2"
     return get_next_users(hash_id,offset,cookies,next_followees_url)
 
-def get_next_users(hash_id="",offset=0,cookies=None,next_url="",num=0):
+def get_next_users(hash_id="",offset=0,cookies=None,next_url="",num=0,xsrf=""):
     params = dict()
     params["offset"] = offset
     params["order_by"] = "created"
     params["hash_id"] = hash_id
 
+    print "get_next_users xsrf:",xsrf
     next_data = dict()
     next_data["params"] = json.JSONEncoder().encode(params)
-    next_data["_xsrf"] = XSRF
+    next_data["_xsrf"] = str(xsrf)
+    next_data["method"] = "next"
+    print "next_data:",next_data
     try:
-        res = requests.get(next_url, headers=HEADERS_BASE, cookies=cookies, data=next_data, timeout=1)
+        res = requests.post(next_url, headers=HEADERS_BASE, cookies=cookies, data=next_data, timeout=1)
         print "status_code:",res.status_code,"offset:",offset,"hash_id:",hash_id
         print res.content
         return res.content
@@ -119,7 +124,7 @@ def findall_hash_id():
 
     
 
-def get_follwes_profile(m_cookies,hash_id,page_num,conn,offset=0,num=0):
+def get_follwers_profile(m_cookies,hash_id,page_num,conn,offset=0,num=0,profile_url=""):
 
     
     users_model_pattern = re.compile(r'<div class="zm-profile-card zm-profile-section-item zg-clear no-hovercard">',re.M)
@@ -136,7 +141,7 @@ def get_follwes_profile(m_cookies,hash_id,page_num,conn,offset=0,num=0):
     for x in range(start,page_num+1):
         offset = x*20
         #print offset
-        html = get_next_followers(hash_id,offset,m_cookies,num)
+        html = get_next_followers(hash_id,offset,m_cookies,num,profile_url)
         users_models = users_model_pattern.split(html)
 
         for users_model in users_models:
@@ -258,7 +263,7 @@ def get_new_user_id(conn):
 
 
 def get_user_info(conn,hash_id):
-    sql = "select id,hash_id,followers from user_profile_%s where hash_id='%s'" %(hash_id_to_num(hash_id),hash_id)
+    sql = "select id,hash_id,followers,proflie_url from user_profile_%s where hash_id='%s'" %(hash_id_to_num(hash_id),hash_id)
     #print sql
     cursor = conn.cursor()
     cursor.execute(sql)
@@ -270,6 +275,7 @@ def get_user_info(conn,hash_id):
             user["id"] = int(user_info[0][0])
             user["hash_id"] = str(user_info[0][1])
             user["followers"] = int(user_info[0][2])
+            user["proflie_url"] = str(user_info[0][3])
     return user
 
 def get_max_id(conn):
@@ -354,9 +360,10 @@ def find_user(m_cookies,conn,num):
         
     
         host_hash_id = new_user["hash_id"]
+        proflie_url = new_user["proflie_url"]
         page_num = int(int(new_user["followers"])/20)
 
-        users = get_follwes_profile(m_cookies,host_hash_id,page_num,conn,offset,num)
+        users = get_follwers_profile(m_cookies,host_hash_id,page_num,conn,offset,num,proflie_url)
         i = get_new_user_id(conn)
         if i == 0:
             print "get min id error"
@@ -435,19 +442,14 @@ def main():
 
 
 def test():
-    print "test"
-    m_cookies = get_login_cookie()
-    #next_followers_url = "https://www.zhihu.com/node/ProfileFollowersListV2"
-    #get_next_users("091e189523a635219d05a4c3cfae70aa",0,m_cookies,next_followers_url)
-    try:
-        res = requests.get("https://www.zhihu.com/", headers=HEADERS_BASE, cookies=m_cookies, timeout=1)
-        print "status_code:",res.status_code
-        print res.content
-        return res.content
-    except Exception, e:
-        #raise e
-        print "ERROR"
-    return ""
+    
+    xsrf = get_xsrf("http://www.zhihu.com")
+    print "test xsrf:",xsrf 
+    m_cookies = get_login_cookie(xsrf)
+    print "m_cookies:",m_cookies
+    next_followers_url = "https://www.zhihu.com/people/li-yihang-17/followers"
+    get_next_users("4c2c2decf105716496f5e438bcca7699",20,m_cookies,next_followers_url,0,xsrf)
+
 
  
 if __name__ == '__main__':
